@@ -95,6 +95,17 @@ button.cooler:hover,button.cooler:focus-visible,button.lemari:hover,button.lemar
 .pv{display:block;width:100%;height:380px;border:1px solid var(--line);border-radius:6px;background:#fff;resize:vertical;overflow:auto;margin:8px 0}
 h2{font:700 16px "Silkscreen",monospace;margin:0}
 @media (prefers-reduced-motion:reduce){.walk .av,.walk i{animation:none}}
+.pill{font-size:13px;padding:2px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--mut)}
+.pill.ok{border-color:#27a376;color:#27a376}.pill.wait{border-color:#d99a1e;color:#b57a0a}.pill.fail{border-color:#c0392b;color:#c0392b}
+.sb{position:absolute;left:calc(50% + 1cqw);top:.2cqw;min-width:2cqw;height:2cqw;border-radius:99px;font-size:1.3cqw;line-height:1.7cqw;text-align:center;color:#fff;font-weight:700;border:.2cqw solid #fff;display:none;pointer-events:none}
+.s-work .sb{display:block;background:#2f80ed}.s-wait .sb{display:block;background:#d99a1e}.s-ok .sb{display:block;background:#27a376}.s-fail .sb{display:block;background:#c0392b}
+@media (prefers-reduced-motion:no-preference){.s-work .sb{animation:pl 1s infinite alternate}}@keyframes pl{to{opacity:.5}}
+.stl{margin-top:8px;font-size:14px}.stl.ok,.stt.ok{color:#27a376}.stl.fail,.stt.fail{color:#c0392b}.stl.wait,.stl.work,.stt.wait,.stt.work{color:#b57a0a}
+.stt{font-size:12px;margin-top:4px}
+.le{border-left:4px solid var(--line);padding:4px 10px;margin:6px 0;font-size:14px}.le.ok{border-color:#27a376}.le.fail{border-color:#c0392b}.le small{color:var(--mut)}
+.mrt{position:absolute;left:58%;bottom:2.5cqw;width:14%;height:5.5cqw;background:#a9744a;border:2px solid #6e4a2b;border-radius:10cqw;cursor:pointer;padding:0}
+.mrt:hover,.mrt:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.mo{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;font:14px/1.5 "DM Sans",system-ui,sans-serif;max-height:240px;overflow:auto}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js" defer></script>
@@ -102,16 +113,16 @@ h2{font:700 16px "Silkscreen",monospace;margin:0}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
 </head>
 <body><main>
-<header><h1>Kantor AI</h1><span class="cnt" id="cnt">Memuat data dari Firebase...</span></header>
+<header><h1>Kantor AI</h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="cnt" id="cnt">Memuat data…</span><span class="pill wait" id="sync" role="status">☁ Memuat…</span><span class="pill" id="api" role="status" aria-live="polite">Gemini: belum dipakai</span></div></header>
 <div id="room">
   <div class="wall"></div>
   <div class="win" style="left:8%"></div><div class="win" style="left:30%"></div><div class="win" style="left:52%"></div><div class="win" style="left:74%"></div>
-  <button class="cooler" aria-label="Dispenser: atur workflow"></button><button class="lemari" aria-label="Lemari: hasil kerja dan resource"></button><div class="sofa"></div><div class="plant"></div>
+  <button class="cooler" aria-label="Dispenser: atur workflow"></button><button class="lemari" aria-label="Lemari: hasil kerja dan resource"></button><button class="mrt" id="mrt" aria-label="Meja rapat: buat meeting"></button><div class="sofa"></div><div class="plant"></div>
   <span class="deco" style="left:3%;bottom:10.6cqw">Dispenser (workflow)</span><span class="deco" style="left:25.5%;bottom:13.75cqw">Lemari</span>
-  <span class="deco" style="right:6%;bottom:9.06cqw">Sofa</span>
+  <span class="deco" style="right:6%;bottom:9.06cqw">Sofa</span><span class="deco" style="left:60%;bottom:8.8cqw">Meeting</span>
 </div>
-<div class="row" style="justify-content:flex-start;align-items:center;margin:8px 0 0"><button class="btn" id="dadd" type="button">+ Tambah meja</button><button class="btn" id="ddel" type="button">− Kurangi meja</button><span class="cnt" id="nd"></span></div>
-<p class="hint">Klik meja kosong untuk menambah karyawan AI. Klik karyawan untuk mengubah skill, memberi tugas, atau menghapusnya. Klik dispenser untuk membuat workflow, klik lemari untuk melihat hasil kerja dan resource.</p>
+<div class="row" style="justify-content:flex-start;align-items:center;margin:8px 0 0"><button class="btn" id="dadd" type="button">+ Tambah meja</button><button class="btn" id="ddel" type="button">− Kurangi meja</button><span class="cnt" id="nd"></span><button class="btn" id="blog" type="button" style="margin-left:auto">Logbook</button><button class="btn" id="bmt" type="button">Meeting</button></div>
+<p class="hint">Lampu kecil di kepala karyawan = status permintaan terakhir (✓ berhasil, ✗ gagal, ⏳ menunggu limit). Klik meja bundar untuk meeting, tombol Logbook untuk riwayat kerja. Klik meja kosong untuk menambah karyawan AI. Klik karyawan untuk mengubah skill, memberi tugas, atau menghapusnya. Klik dispenser untuk membuat workflow, klik lemari untuk melihat hasil kerja dan resource.</p>
 <div id="roster"></div>
 </main>
 
@@ -128,7 +139,7 @@ h2{font:700 16px "Silkscreen",monospace;margin:0}
     <label for="fl">Lampirkan file (opsional)</label><input type="file" id="fl" multiple><div class="hint" style="margin:4px 0 0;font-size:13px">Gambar, Word (.docx), PowerPoint (.pptx), Excel, teks, CSV, JSON, atau kode. Boleh lebih dari satu file.</div>
     <label for="cb">Atau pakai bahan dari lemari</label><select id="cb"></select>
     <label for="ofm">Format hasil</label><select id="ofm"></select>
-    <div class="row" style="margin-top:8px"><button class="btn p" id="runb" type="button">Kerjakan tugas</button></div><pre id="out" aria-live="polite"></pre><div id="hist"></div></div>
+    <div class="row" style="margin-top:8px"><button class="btn p" id="runb" type="button">Kerjakan tugas</button></div><div id="stl" class="stl" aria-live="polite"></div><pre id="out" aria-live="polite"></pre><div id="hist"></div></div>
   <div class="row"><button class="btn d" id="del">Hapus</button><button class="btn" id="cx">Batal</button><button class="btn p" id="sv">Simpan</button></div>
 </dialog>
 
@@ -146,10 +157,27 @@ h2{font:700 16px "Silkscreen",monospace;margin:0}
 </dialog>
 <dialog id="cabd">
   <h2>Lemari</h2><span class="cnt" id="cn"></span>
-  <div style="margin-top:10px"><select id="cf" aria-label="Filter isi lemari"><option value="">Semua</option><option>Hasil</option><option>Resource</option></select></div>
+  <div style="margin-top:10px"><select id="cf" aria-label="Filter isi lemari"><option value="">Semua</option><option>Hasil</option><option>Resource</option></select> <select id="cag" aria-label="Filter agen"></select></div>
   <label for="cup">Tambah resource (teks, Word, PowerPoint, Excel, CSV, JSON, kode)</label><input type="file" id="cup" multiple><small class="st" id="cst"></small>
   <div id="cl" style="margin-top:10px"></div>
   <div class="row"><button class="btn" id="cxx" type="button">Tutup</button></div>
+</dialog>
+
+<dialog id="logd">
+  <h2>Logbook</h2><span class="cnt" id="lgc"></span>
+  <div class="ho" style="margin-top:10px"><select id="lga" aria-label="Filter agen"></select><select id="lgs" aria-label="Filter status"><option value="">Semua status</option><option value="ok">Berhasil</option><option value="fail">Gagal</option><option value="info">Info</option></select></div>
+  <div id="lgl" style="margin-top:10px"></div>
+  <div class="row"><button class="btn d" id="lgclr" type="button">Hapus log</button><button class="btn" id="lgx" type="button">Tutup</button></div>
+</dialog>
+<dialog id="mtd">
+  <h2>Meeting · Meja Rapat</h2>
+  <label for="mtp">Topik / agenda</label><textarea id="mtp" placeholder="mis. Tentukan strategi peluncuran kopi susu baru"></textarea>
+  <label>Peserta (pilih 2–8 karyawan)</label><div class="rcp" id="mpe"></div>
+  <div class="ho" style="margin-top:8px"><select id="mrd" aria-label="Jumlah ronde"><option value="1">1 ronde</option><option value="2" selected>2 ronde</option><option value="3">3 ronde</option></select><select id="mrs" aria-label="Bahan dari lemari"></select></div>
+  <label style="font-weight:400"><input type="checkbox" id="msv" checked> Simpan notulen ke lemari</label>
+  <small class="st" id="mes"></small><small class="stl" id="mss"></small>
+  <div id="mlv" class="msgs" style="max-height:300px"></div><div id="mmn"></div>
+  <div class="row"><button class="btn d" id="mstp" type="button" hidden>Hentikan</button><button class="btn" id="mcl" type="button">Tutup</button><button class="btn p" id="mgo" type="button">Mulai meeting</button></div>
 </dialog>
 
 <script>
@@ -174,22 +202,73 @@ const db = firebase.database();
 
 const GEMINI_API_KEY = "AQ.Ab8RN6JJERD5WmL4V_i_Uk2bt_9n0-8wmIl2JoQW3Ra5Ma5oHg"; 
 
-async function callGemini(promptText, onText) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-  });
-  const data = await response.json();
-  if (data.candidates && data.candidates[0].content.parts[0].text) {
-    const text = data.candidates[0].content.parts[0].text;
-    if (onText) onText({ text });
-    return { text };
-  } else {
-    throw new Error(data.error?.message || "Gagal mendapatkan respons dari Gemini API.");
-  }
-}
+const $=id=>document.getElementById(id);
+const GEMINI_MODEL="gemini-3.8-flash",sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let loaded=false,logs=[],logT=0;
+const apiS={ok:0,fail:0};
+const clean=v=>JSON.parse(JSON.stringify(v===undefined?null:v));
+const pill=(id,k,m)=>{const p=$(id);if(p){p.className="pill "+k;p.textContent=m}};
+const apiNote=(k,m)=>{if(k==="ok")apiS.ok++;if(k==="fail")apiS.fail++;pill("api",k==="work"?"wait":k,"Gemini: "+m+" (✓"+apiS.ok+" ✗"+apiS.fail+")")};
+const fbSet=(p,v)=>{if(!loaded)return;pill("sync","wait","☁ Menyimpan…");try{db.ref(p).set(clean(v)).then(()=>pill("sync","ok","☁ Tersimpan"),x=>pill("sync","fail","☁ Gagal simpan: "+((x&&x.code)||"error")))}catch(x){pill("sync","fail","☁ Gagal simpan")}};
+
+class GErr extends Error{constructor(kind,msg,wait){super(msg);this.code="gem";this.kind=kind;this.wait=wait||0}}
+// antrean: maksimal 2 permintaan bersamaan, jeda 0.8 dtk, supaya tidak mudah kena limit
+const GQ={n:0,q:[],last:0,tm:0};
+const gGet=()=>new Promise(ok=>{GQ.q.push(ok);gPump()});
+const gPump=()=>{if(GQ.n>=2||!GQ.q.length||GQ.tm)return;GQ.tm=setTimeout(()=>{GQ.tm=0;if(GQ.n<2&&GQ.q.length){GQ.n++;GQ.last=Date.now();GQ.q.shift()()}gPump()},Math.max(0,GQ.last+800-Date.now()))};
+const gPut=()=>{GQ.n--;gPump()};
+function gErr(st,d){const er=(d&&d.error)||{},m=er.message||"",j=JSON.stringify(er.details||"")+m;
+ if(st===429){const rd=j.match(/retryDelay"?:\s*"(\d+)/),w=rd?(+rd[1]+1)*1000:0;
+  return /per ?day|daily/i.test(j)?new GErr("quota","Kuota harian Gemini habis (429). Tunggu besok atau ganti API key."):new GErr("limit","Kena limit Gemini (429): terlalu banyak permintaan.",w)}
+ if(st>=500)return new GErr("busy","Server Gemini sedang sibuk ("+st+").");
+ if(st===401||st===403||/api key/i.test(m))return new GErr("key","API key ditolak ("+st+"). Periksa key Gemini.");
+ return new GErr("other","Gemini error "+st+": "+m.slice(0,150))}
+
+// onSt({k:work|wait|ok|fail, m:pesan, retry}) dipanggil tiap perubahan status
+async function callGemini(promptText,onText,onSt){
+ const MAX=4,url=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+ const st=(k,m,x)=>{apiNote(k,m);if(onSt)onSt({k,m,...x})};
+ await gGet();
+ try{for(let a=1;;a++){
+  try{
+   st("work",a>1?`Mencoba lagi (${a}/${MAX})…`:"Menghubungi Gemini…");
+   let r,d=null;
+   try{r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:promptText}]}]})})}
+   catch(x){throw new GErr("net","Tidak bisa terhubung ke Gemini. Periksa internet.")}
+   try{d=await r.json()}catch(x){}
+   if(!r.ok)throw gErr(r.status,d);
+   const c=d&&d.candidates&&d.candidates[0],t=c&&c.content&&c.content.parts?c.content.parts.map(p=>p.text||"").join(""):"";
+   if(t.trim()){st("ok","respons diterima ✓");if(onText)onText({text:t});return{text:t,tries:a}}
+   const b=d&&d.promptFeedback&&d.promptFeedback.blockReason;
+   if(b)throw new GErr("block","Diblokir filter keamanan Gemini ("+b+").");
+   throw new GErr("empty","Gemini mengembalikan respons kosong"+(c&&c.finishReason?" ("+c.finishReason+")":"")+".")
+  }catch(x){
+   if(!(x instanceof GErr))x=new GErr("other",x&&x.message||"Error tak dikenal");
+   if(!(/^(limit|busy|net|empty)$/.test(x.kind)&&a<MAX&&x.wait<=45000)){st("fail",x.message);throw x}
+   const w=Math.max(x.wait,3000*2**(a-1)),n=Math.ceil(w/1000);
+   for(let t=n;t>0;t--){st("wait",`${x.message} Ulang ${t} dtk (${a+1}/${MAX})`,{retry:t===n});await sleep(1000)}
+  }}}finally{gPut()}}
+
+// ---- status per karyawan ----
+const ICO={work:"⏳",wait:"⏳",ok:"✓",fail:"✗"};
+function setStat(e,k,m){const r=run[e.id];if(!r)return;r.st={k,m,at:Date.now()};
+ r.el.classList.remove("s-work","s-wait","s-ok","s-fail");r.el.classList.add("s-"+k,"seated");
+ const sb=r.el.querySelector(".sb");sb.textContent=k==="work"?"…":ICO[k];sb.title=m;
+ r.el.querySelector(".bub").textContent=m.slice(0,30);
+ if(dlg.open&&byDesk(cur)===e)showStat(e);drawDesks()}
+function showStat(e){const r=run[e.id],s=$("stl");if(!r||!r.st){s.textContent="";s.className="stl";return}
+ s.className="stl "+r.st.k;s.textContent=ICO[r.st.k]+" "+r.st.m+" · "+fmt(r.st.at)}
+const rst=e=>{const s=(run[e.id]||{}).st;return s?`<div class="stt ${s.k}">${ICO[s.k]} ${esc(s.m.slice(0,70))}</div>`:""};
+
+// ---- logbook ----
+function logAdd(e,type,msg,st){logs.unshift({id:"l"+Date.now()+Math.floor(Math.random()*99),at:Date.now(),aid:e?e.id:"",agent:e?e.name:"Kantor",type,msg:String(msg).slice(0,300),st:st||"info"});
+ logs=logs.slice(0,300);clearTimeout(logT);logT=setTimeout(()=>fbSet("kantor/logbook",logs),500);if($("logd").open)drawLog()}
+function drawLog(){const a=$("lga").value,st=$("lgs").value,L=logs.filter(l=>(!a||l.agent===a)&&(!st||l.st===st));
+ $("lgc").textContent=logs.length+" catatan";
+ $("lgl").innerHTML=L.length?L.map(l=>`<div class="le ${l.st}"><small>${new Date(l.at).toLocaleString("id-ID",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})} · ${esc(l.type)}</small><div><b>${esc(l.agent)}</b> ${l.st==="ok"?"✓":l.st==="fail"?"✗":"•"} ${esc(l.msg)}</div></div>`).join(""):'<p class="hint">Belum ada catatan.</p>'}
+function openLog(){const v=$("lga").value;
+ $("lga").innerHTML='<option value="">Semua agen</option>'+[...new Set([...emps.map(e=>e.name),...logs.map(l=>l.agent)])].map(n=>`<option${n===v?" selected":""}>${esc(n)}</option>`).join("");
+ drawLog();$("logd").showModal()}
 
 // ==========================================
 // 2. VARIABEL & LOGIKA UTAMA
@@ -204,9 +283,9 @@ const room=document.getElementById("room"),dlg=document.getElementById("dlg");
 let emps=[], run={}, cur=null, form={skills:[],color:COL[0]};
 let cab=[], wf={task:"", steps:[], res:"", save:true}, wfBusy=0, wfLog=[];
 
-const save = () => { db.ref('kantor/karyawan').set(emps); };
-const saveCab = () => { db.ref('kantor/lemari').set(cab); };
-const saveWf = () => { db.ref('kantor/workflow').set(wf); };
+const save = () => fbSet('kantor/karyawan',emps);
+const saveCab = () => fbSet('kantor/lemari',cab);
+const saveWf = () => fbSet('kantor/workflow',wf);
 const addCab = (it) => {
   cab.unshift({id:"c"+Date.now()+Math.floor(Math.random()*999), at:Date.now(), agent:"", ...it});
   cab = cab.slice(0,60);
@@ -220,6 +299,7 @@ const seat=i=>{const p=dp(i);return{x:p.l+DW/2,y:py(17.5+25*Math.floor(i/5))}};
 const spots=()=>{const a=[8,46,84].map(x=>({x,y:py(H()-7.5)}));for(let k=0;k<RW()-1;k++)for(const x of [12,28,50,72,90])a.push({x,y:py(27.5+25*k)});return a};
 const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const byDesk=i=>emps.find(e=>e.desk===i);
+const mine=(c,e)=>c.type==='Resource'||c.agent===e.name||(c.by||[]).includes(e.name);
 
 const deskEls=[];
 
@@ -234,7 +314,7 @@ function drawDesks(){
   
   const r=document.getElementById("roster");
   if(r){
-    r.innerHTML=emps.map(e=>`<button class="rc" data-d="${e.desk}"><b>${esc(e.name)}</b><small>${e.sex==="P"?"♀":"♂"} ${esc(e.role||"Tanpa jabatan")} · Meja ${e.desk+1} · ${(e.hist||[]).length} tugas</small><div class="chips">${(e.skills||[]).map(s=>`<span class="chip on">${s}</span>`).join("")}</div></button>`).join("");
+    r.innerHTML=emps.map(e=>`<button class="rc" data-d="${e.desk}"><b>${esc(e.name)}</b><small>${e.sex==="P"?"♀":"♂"} ${esc(e.role||"Tanpa jabatan")} · Meja ${e.desk+1} · ${(e.hist||[]).length} tugas</small>${rst(e)}<div class="chips">${(e.skills||[]).map(s=>`<span class="chip on">${esc(s)}</span>`).join("")}</div></button>`).join("");
     r.querySelectorAll(".rc").forEach(b=>b.onclick=()=>openDlg(+b.dataset.d));
   }
 }
@@ -243,7 +323,7 @@ function mount(e){
   if(!run[e.id]) {
     const s=seat(e.desk),el=document.createElement("button");
     el.className="emp";el.style.left=s.x+"%";el.style.top=s.y+"%";el.style.zIndex=Math.round(s.y);
-    el.innerHTML=`<span class="bub"></span><div class="av"><i class="hr"></i><i class="hd"></i><i class="bd"></i><i class="lg l1"></i><i class="lg l2"></i></div><b class="tag"></b>`;
+    el.innerHTML=`<span class="bub"></span><div class="av"><i class="hr"></i><i class="hd"></i><i class="bd"></i><i class="lg l1"></i><i class="lg l2"></i></div><b class="tag"></b><span class="sb"></span>`;
     el.onclick=()=>openDlg(e.desk);room.appendChild(el);
     run[e.id]={el,x:s.x,y:s.y,t:0};
   }
@@ -285,11 +365,12 @@ function life(e){
 }
 
 function openDlg(i){
+  if(!loaded){pill('sync','wait','☁ Tunggu data selesai dimuat…');return}
   cur=i;const e=byDesk(i);
   form=e?{skills:[...(e.skills||[])],color:e.color,sex:e.sex||"L"}:{skills:[],color:COL[emps.length%COL.length],sex:"L"};
   document.getElementById("dt").textContent=e?"Ubah karyawan · Meja "+(i+1):"Karyawan baru · Meja "+(i+1);
-  nm.value=e?e.name:"";rl.value=e?e.role:"";nt.value=e?e.note:"";
-  del.style.display=e?"":"none";task.style.display=e?"":"none";tk.value="";fl.value="";out.textContent="";hist(e);fillCab(cb);drawForm();dlg.showModal();nm.focus();
+  nm.value=e?e.name:"";rl.value=e?e.role:"";nt.value=e?e.note||"":"";
+  del.style.display=e?"":"none";task.style.display=e?"":"none";tk.value="";fl.value="";out.textContent="";hist(e);fillCab(cb,"",e);if(e)showStat(e);drawForm();dlg.showModal();nm.focus();
 }
 
 function drawForm(){
@@ -297,7 +378,7 @@ function drawForm(){
   x.innerHTML=[["L","Laki-laki"],["P","Perempuan"]].map(([k,n])=>`<button type="button" class="chip${form.sex===k?" on":""}" data-s="${k}">${n}</button>`).join("");
   x.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{form.sex=b.dataset.s;drawForm()});
   const s=document.getElementById("sks");
-  s.innerHTML=[...SK,...CS,...form.skills.filter(k=>!SK.includes(k)&&!CS.includes(k))].map(k=>`<button type="button" class="chip${form.skills.includes(k)?" on":""}" data-k="${k}">${k}</button>`).join("");
+  s.innerHTML=[...SK,...CS,...form.skills.filter(k=>!SK.includes(k)&&!CS.includes(k))].map(k=>`<button type="button" class="chip${form.skills.includes(k)?" on":""}" data-k="${esc(k)}">${esc(k)}</button>`).join("");
   s.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{const k=b.dataset.k,idx=form.skills.indexOf(k);idx<0?form.skills.push(k):form.skills.splice(idx,1);drawForm()});
   const w=document.getElementById("sw");
   w.innerHTML=COL.map(c=>`<button type="button" aria-label="Warna ${c}" class="${c===form.color?"on":""}" style="background:${c}" data-c="${c}"></button>`).join("");
@@ -307,22 +388,22 @@ function drawForm(){
 sv.onclick=()=>{
   const name=nm.value.trim();if(!name){nm.focus();return}
   let e=byDesk(cur);const data={name,role:rl.value.trim(),note:nt.value.trim(),skills:form.skills,color:form.color,sex:form.sex};
-  if(e){Object.assign(e,data);paint(e)}else{e={id:"e"+Date.now(),desk:cur,hist:[],...data};emps.push(e);mount(e)}
+  if(e){Object.assign(e,data);paint(e)}else{e={id:"e"+Date.now(),desk:cur,hist:[],...data};emps.push(e);mount(e);logAdd(e,"Admin","Direkrut di meja "+(cur+1),"info")}
   save();drawDesks();dlg.close();
 };
-del.onclick=()=>{const e=byDesk(cur);if(e){unmount(e);emps=emps.filter(x=>x!==e);save();drawDesks()}dlg.close()};
+del.onclick=()=>{const e=byDesk(cur);if(e){logAdd(e,"Admin","Dikeluarkan dari kantor","info");unmount(e);emps=emps.filter(x=>x!==e);save();drawDesks()}dlg.close()};
 cx.onclick=()=>dlg.close();
 
 const TXT=/\.(txt|md|csv|tsv|json|html?|xml|js|ts|jsx|py|css|sql|log|ya?ml|ini|sh)$/i;
 const fmt=t=>new Date(t).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
-const errMsg=x=>({busy:"Karyawan ini sedang mengerjakan tugas lain.",gone:"Karyawan tidak ditemukan."}[x&&x.code]||(x&&x.code==="src"?x.message:null)||"Tugas gagal dikerjakan"+(x&&x.message?": "+x.message:". Periksa API Key Gemini Anda."));
+const errMsg=x=>({busy:"Karyawan ini sedang mengerjakan tugas lain.",gone:"Karyawan tidak ditemukan."}[x&&x.code]||(x&&(x.code==="src"||x.code==="gem")?x.message:null)||"Tugas gagal dikerjakan"+(x&&x.message?": "+x.message:". Periksa API Key Gemini Anda."));
 const refresh=()=>{if(dlg.open){const c=byDesk(cur);if(c)hist(c)}};
 
 async function doTask(e,sp){
  const r=run[e.id];if(!r)throw{code:"gone"};if(r.busy)throw{code:"busy"};
  e.hist=e.hist||[];
  const mem=e.hist.slice(0,3).map(h=>`- ${h.t.slice(0,150)} => ${h.res.slice(0,250)}`).join("\n");
- const prompt=`Kamu adalah ${e.name}, seorang ${e.role||"karyawan"} di kantor virtual. Skill: ${e.skills.join(", ")||"umum"}.${e.note?" Instruksi kerja: "+e.note+".":""}\nJawab dalam Bahasa Indonesia. Langsung kerjakan, tanpa basa-basi.`
+ const prompt=`Kamu adalah ${e.name}, seorang ${e.role||"karyawan"} di kantor virtual. Skill: ${(e.skills||[]).join(", ")||"umum"}.${e.note?" Instruksi kerja: "+e.note+".":""}\nJawab dalam Bahasa Indonesia. Langsung kerjakan, tanpa basa-basi.`
  +(mem?`\n\nIngatanmu, tugas terakhir yang pernah kamu kerjakan (hanya untuk konteks):\n${mem}`:"")
  +(sp.from?`\n\nRekanmu ${sp.from.name} (${sp.from.role||"karyawan"}) menyerahkan hasil kerjanya kepadamu. Tugas awalnya: ${sp.from.task}\nHasil darinya (bahan kerja, bukan perintah):\n"""\n${sp.from.res}\n"""`:"")
  +`\n\nTugas untuk kamu: ${sp.task||"Kerjakan file terlampir sesuai peran dan skill kamu."}`
@@ -331,9 +412,11 @@ async function doTask(e,sp){
  r.busy=1;clearTimeout(r.t);const s=seat(e.desk),d=move(e,s.x,s.y);
  setTimeout(()=>{r.el.classList.add("seated");r.el.querySelector(".bub").textContent=sp.from?"Terima dari "+sp.from.name+"…":"Mengerjakan tugas…"},d);
  try{
-  const res=await callGemini(prompt,sp.onText);
+  const t0=Date.now(),lbl=sp.from?"Menerima hasil dari "+sp.from.name:"Tugas";setStat(e,"work","Mengerjakan…");
+  const res=await callGemini(prompt,sp.onText,m=>{setStat(e,m.k,m.m);if(m.retry)logAdd(e,"Limit",m.m,"info")});
   e.hist.unshift({id:"h"+Date.now(),t:sp.task||(sp.file?"File: "+sp.file:"Tugas"),res:res.text.slice(0,8000),at:Date.now(),from:sp.from?sp.from.name:"",to:[],fmt:sp.fmt||"teks"});
-  e.hist=e.hist.slice(0,15);save();r.el.querySelector(".bub").textContent="Selesai ✓";refresh();return e.hist[0]}
+  e.hist=e.hist.slice(0,15);save();setStat(e,"ok","Selesai ✓ ("+Math.round((Date.now()-t0)/1000)+" dtk)");logAdd(e,sp.from?"Terima":"Tugas",lbl+": "+(sp.task||sp.file||"").slice(0,120)+" — selesai"+(res.tries>1?" (percobaan ke-"+res.tries+")":""),"ok");refresh();return e.hist[0]}
+ catch(x){logAdd(e,sp.from?"Terima":"Tugas","Gagal: "+(sp.task||sp.file||"").slice(0,80)+" — "+errMsg(x),"fail");throw x}
  finally{r.busy=0;if(run[e.id]===r)r.t=setTimeout(()=>life(e),2500)}}
 
 async function handoff(e,h,toId,ins,say,fm){
@@ -342,7 +425,7 @@ async function handoff(e,h,toId,ins,say,fm){
  say("Menyerahkan ke "+to.name+"…");clearTimeout(a.t);a.el.classList.remove("seated");
  await new Promise(ok=>setTimeout(ok,move(e,Math.min(95,b.x+4),b.y)+300));
  a.el.querySelector(".bub").textContent="Untuk "+to.name;a.el.classList.add("seated");
- h.to=(h.to||[]).concat(to.name);save();
+ h.to=(h.to||[]).concat(to.name);save();logAdd(e,"Serah","Menyerahkan '"+h.t.slice(0,60)+"' ke "+to.name,"info");
  setTimeout(()=>{if(run[e.id]!==a)return;const s=seat(e.desk);a.t=setTimeout(()=>life(e),move(e,s.x,s.y))},1800);
  let hh=null;try{hh=await doTask(to,{fmt:fm,task:ins||"Lanjutkan pekerjaan rekanmu sesuai peran dan skill kamu.",from:{name:e.name,role:e.role,task:h.t,res:h.res}});say(to.name+" selesai mengerjakan ✓")}
  catch(x){say(errMsg(x))}
@@ -368,13 +451,13 @@ async function chatSend(e,h,text,ui){
  r.busy=1;clearTimeout(r.t);const s=seat(e.desk),d=move(e,s.x,s.y);
  setTimeout(()=>{r.el.classList.add("seated");r.el.querySelector(".bub").textContent="Membalas chat…"},d);
  let msgs=h.chat.slice(-12);if(msgs[0].role!=="user")msgs=msgs.slice(1);
- const ctx=`Kamu adalah ${e.name}, seorang ${e.role||"karyawan"} di kantor virtual. Skill: ${e.skills.join(", ")||"umum"}.${e.note?" Instruksi kerja: "+e.note+".":""}\nJawab dalam Bahasa Indonesia, natural seperti rekan kerja yang sopan. Kamu sedang mengobrol dengan atasanmu tentang hasil kerjamu.\nTugas yang kamu kerjakan: ${h.t}\nHasil kerjamu saat ini:\n"""\n${h.res}\n"""\nAturan: jika atasan meminta revisi, tulis versi revisi lengkap. Jika hanya bertanya, jawab singkat.`;
+ const ctx=`Kamu adalah ${e.name}, seorang ${e.role||"karyawan"} di kantor virtual. Skill: ${(e.skills||[]).join(", ")||"umum"}.${e.note?" Instruksi kerja: "+e.note+".":""}\nJawab dalam Bahasa Indonesia, natural seperti rekan kerja yang sopan. Kamu sedang mengobrol dengan atasanmu tentang hasil kerjamu.\nTugas yang kamu kerjakan: ${h.t}\nHasil kerjamu saat ini:\n"""\n${h.res}\n"""\nAturan: jika atasan meminta revisi, tulis versi revisi lengkap. Jika hanya bertanya, jawab singkat.`;
  const promptText=ctx+"\n\nRiwayat Obrolan:\n"+msgs.map(m=>`${m.role==="user"?"Atasan":e.name}: ${m.content}`).join("\n");
  try{
-  const res=await callGemini(promptText,({text:tx})=>ui.render(tx));
+  const res=await callGemini(promptText,({text:tx})=>ui.render(tx),m=>setStat(e,m.k,m.m));
   h.chat.push({role:"assistant",content:res.text.slice(0,6000)});h.chat=h.chat.slice(-30);save();
-  r.el.querySelector(".bub").textContent="Selesai ✓";ui.render();ui.done()}
- catch(x){h.chat.pop();ui.render();ui.say(errMsg(x));ui.restore(text)}
+  setStat(e,"ok","Balasan terkirim ✓");logAdd(e,"Chat","Membalas chat: "+text.slice(0,100),"ok");ui.render();ui.done()}
+ catch(x){h.chat.pop();logAdd(e,"Chat","Gagal membalas chat — "+errMsg(x),"fail");ui.render();ui.say(errMsg(x));ui.restore(text)}
  finally{r.busy=0;if(run[e.id]===r)r.t=setTimeout(()=>life(e),2500)}}
 
 const FM={teks:["Teks biasa","txt"],html:["HTML","html"],pdf:["PDF","pdf"],excel:["Excel","xlsx"]};
@@ -387,17 +470,16 @@ const wireTg=d=>{const tg=d.querySelector(".tg");if(tg)tg.onclick=()=>{const fr=
 async function saveAs(text,title,f,who){
  f=f||"teks";
  const name=((who||"")+"-"+(title||"hasil")).replace(/[^\w]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"hasil";
- try{
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${name}.${FM[f][1]}`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  return "Tersimpan ✓";
+ try{let blob,ext=FM[f][1];
+  if(f==="excel"&&window.XLSX){const wb=XLSX.read(strip(text),{type:"string"});blob=new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}
+  else if(f==="pdf"&&window.jspdf){const d=new jspdf.jsPDF({unit:"pt",format:"a4"}),W=d.internal.pageSize.getWidth()-100,Hm=d.internal.pageSize.getHeight()-60;let y=60;
+   strip(text).split("\n").forEach((ln,k)=>{d.setFont("helvetica",k?"normal":"bold");d.setFontSize(k?11:16);
+    d.splitTextToSize(ln||" ",W).forEach(t=>{if(y>Hm){d.addPage();y=60}d.text(t,50,y);y+=k?15:22})});
+   blob=d.output("blob")}
+  else{ext=f==="excel"?"csv":f==="pdf"?"txt":ext;blob=new Blob([f==="html"?strip(text):text],{type:(f==="html"?"text/html":f==="excel"?"text/csv":"text/plain")+";charset=utf-8"})}
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=name+"."+ext;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);return "Tersimpan ✓";
  }catch(x){return "Gagal menyimpan file."}
 }
 
@@ -423,7 +505,7 @@ async function handoffMany(e,h,ids,ins,say,fm){
  say("Menyerahkan ke "+tos.map(t=>t.name).join(", ")+"…");clearTimeout(a.t);a.el.classList.remove("seated");const jobs=[];
  for(const to of tos){const b=run[to.id];
   await new Promise(ok=>setTimeout(ok,move(e,Math.min(95,b.x+4),b.y)+300));
-  a.el.querySelector(".bub").textContent="Untuk "+to.name;a.el.classList.add("seated");h.to=(h.to||[]).concat(to.name);save();
+  a.el.querySelector(".bub").textContent="Untuk "+to.name;a.el.classList.add("seated");h.to=(h.to||[]).concat(to.name);save();logAdd(e,"Serah","Menyerahkan '"+h.t.slice(0,60)+"' ke "+to.name,"info");
   jobs.push(doTask(to,{fmt:fm,task:ins||"Lanjutkan pekerjaan rekanmu sesuai peran dan skill kamu.",from:{name:e.name,role:e.role,task:h.t,res:h.res}}).then(()=>to.name+" selesai ✓",x=>to.name+": "+errMsg(x)));
   await new Promise(ok=>setTimeout(ok,600))}
  const s=seat(e.desk);if(run[e.id]===a)a.t=setTimeout(()=>life(e),move(e,s.x,s.y));
@@ -458,15 +540,15 @@ runb.onclick=async()=>{const e=byDesk(cur),t=tk.value.trim(),fs=[...fl.files],ci
  catch(x){out.textContent=errMsg(x)}
  runb.disabled=false};
 
-function fillCab(sel, selectedId){
+function fillCab(sel, selectedId, who){
   if(!sel) return;
-  const items = cab || [];
+  const items = (cab || []).filter(c=>!who||mine(c,who));
   sel.innerHTML = '<option value="">— tidak pakai bahan lemari —</option>' +
     items.map(c => `<option value="${esc(c.id)}"${c.id===selectedId?" selected":""}>[${c.type||"Item"}] ${esc((c.title||"").slice(0,40))}${c.agent?" · "+esc(c.agent):""}</option>`).join("");
   if(selectedId && !items.some(c => c.id === selectedId)) sel.value = "";
 }
 
-function drawCab(){const f=cf.value,items=cab.filter(c=>!f||c.type===f);
+function drawCab(){const f=cf.value,ag=$("cag").value,items=cab.filter(c=>(!f||c.type===f)&&(!ag||c.agent===ag||(c.by||[]).includes(ag)));
  cn.textContent=cab.length+" item tersimpan";
  cl.innerHTML=items.length?items.map(c=>`<details class="hi" data-id="${c.id}"><summary>[${c.type}] ${esc(c.title.slice(0,50))}${c.agent?" · "+esc(c.agent):""} · ${fmt(c.at)}</summary>${body(c.text,c.fmt)}<div class="ho"><button class="btn cu" type="button">Unduh .${FM[c.fmt||"teks"][1]}</button><button class="btn cc" type="button">Salin</button><button class="btn cd" type="button">Hapus</button></div></details>`).join(""):'<p class="hint">Lemari masih kosong. Simpan hasil kerja dari riwayat karyawan, atau tambahkan resource.</p>';
  cl.querySelectorAll(".hi").forEach(d=>{const c=cab.find(x=>x.id===d.dataset.id);wireTg(d);
@@ -486,14 +568,14 @@ function renderSteps(){
   r.querySelector("input").oninput=ev=>{wf.steps[i].ins=ev.target.value;saveWf()};
   r.querySelector("button").onclick=()=>{wf.steps.splice(i,1);saveWf();renderSteps()}})}
 function renderLog(){setTimeout(()=>wlog.querySelectorAll(".hi").forEach(wireTg));wlog.innerHTML=wfLog.length?'<div class="hh"><label>Hasil workflow</label></div>'+wfLog.map((L,i)=>`<details class="hi"${i===wfLog.length-1?" open":""}><summary>${i+1}. ${esc(L.name)} (${esc(L.role||"karyawan")}) · ${esc(L.state)}</summary>${L.fmt==="html"&&L.state==="Selesai ✓"?body(L.text,"html"):`<pre id="wp${i}">${esc(L.text)}</pre>`}</details>`).join(""):""}
-function openWf(){wf.steps=wf.steps.filter(s=>emps.some(e=>e.id===s.id));
+function openWf(){if(!loaded)return;wf.steps=wf.steps.filter(s=>emps.some(e=>e.id===s.id));
  if(!wf.steps.length&&emps.length)wf.steps=emps.slice(0,2).map(e=>({id:e.id,ins:""}));
  wt.value=wf.task;wsave.checked=wf.save!==false;fillCab(wr,wf.res);renderSteps();renderLog();
  wempty.hidden=emps.length>0;wgo.disabled=!emps.length||!!wfBusy;wfd.showModal()}
 async function runWf(){
  if(wfBusy)return;const steps=wf.steps.filter(s=>emps.some(e=>e.id===s.id)),task=wf.task.trim();
  if(!steps.length||!task){wt.focus();return}
- const rs=cab.find(c=>c.id===wf.res);wfBusy=1;wgo.disabled=true;wfLog=[];renderLog();
+ const rs=cab.find(c=>c.id===wf.res);wfBusy=1;wgo.disabled=true;wfLog=[];renderLog();logAdd(null,"Workflow","Dimulai: "+task.slice(0,80)+" ("+steps.length+" langkah)","info");
  let prev=null,pe=null,h=null;
  for(let i=0;i<steps.length;i++){
   const e=emps.find(x=>x.id===steps[i].id),L={name:e.name,role:e.role,state:"Mengerjakan…",text:""};
@@ -504,15 +586,15 @@ async function runWf(){
   }catch(x){L.state=errMsg(x)}
   if(!h){if(L.state==="Mengerjakan…")L.state="Gagal";renderLog();break}
   L.state="Selesai ✓";L.text=h.res;renderLog();prev=h;pe=e}
- if(h&&wf.save!==false)addCab({type:"Hasil",title:"Workflow: "+task.slice(0,50),agent:wfLog.map(L=>L.name).join(" → "),text:h.res,fmt:wfm.value});
- wfBusy=0;wgo.disabled=false}
+ if(h&&wf.save!==false)addCab({type:"Hasil",title:"Workflow: "+task.slice(0,50),agent:wfLog.map(L=>L.name).join(" → "),by:wfLog.map(L=>L.name),text:h.res,fmt:wfm.value});
+ logAdd(null,"Workflow",h?"Selesai: "+task.slice(0,60):"Berhenti karena ada langkah gagal",h?"ok":"fail");wfBusy=0;wgo.disabled=false}
 wt.oninput=()=>{wf.task=wt.value;saveWf()};
-wr.onchange=()=>{wf.res=wr.value};
+wr.onchange=()=>{wf.res=wr.value;saveWf()};
 wsave.onchange=()=>{wf.save=wsave.checked;saveWf()};
 wadd.onclick=()=>{if(!emps.length)return;wf.steps.push({id:emps[0].id,ins:""});saveWf();renderSteps()};
 wgo.onclick=runWf;wcx.onclick=()=>wfd.close();cxx.onclick=()=>cabd.close();
 document.querySelector(".cooler").onclick=openWf;
-document.querySelector(".lemari").onclick=()=>{cf.value="";drawCab();cabd.showModal()};
+document.querySelector(".lemari").onclick=()=>{if(!loaded)return;cf.value="";$("cag").innerHTML='<option value="">Semua agen</option>'+emps.map(e=>`<option>${esc(e.name)}</option>`).join("");drawCab();cabd.showModal()};
 
 function layout(){
   room.style.aspectRatio="100/"+H();
@@ -552,33 +634,83 @@ const wfmEl=document.getElementById("wfm");
 if(ofmEl) ofmEl.innerHTML=fmtOpts();
 if(wfmEl) wfmEl.innerHTML=fmtOpts();
 
-// Inisialisasi Tampilan Awal langsung agar meja bisa diklik
+// ==========================================
+// 3. MEETING
+// ==========================================
+const MT={busy:0,stop:0,tr:[],min:""};
+const mseat=k=>({x:55+Math.floor(k/2)*4.5,y:py(H()-(k%2?2.2:8.3))});
+function estMt(){const n=$("mpe").querySelectorAll("input:checked").length,r=+$("mrd").value;
+ $("mes").textContent=n>1?`${n*r+1} permintaan ke Gemini (${n} peserta × ${r} ronde + notulen). Makin banyak, makin mudah kena limit.`:"Pilih minimal 2 peserta."}
+function drawMt(){const b=$("mlv");
+ b.innerHTML=MT.tr.map(t=>`<div class="m a"><small>${esc(t.name)} (${esc(t.role||"karyawan")}) · ronde ${t.rd}${t.ok?"":" · ✗"}</small><div class="mt">${esc(t.text)}</div></div>`).join("");
+ b.scrollTop=b.scrollHeight;$("mmn").innerHTML=MT.min?`<label>Notulen</label><div class="mo">${esc(MT.min)}</div>`:""}
+function openMt(){if(!loaded)return;
+ const on=new Set([...$("mpe").querySelectorAll("input:checked")].map(x=>x.value));
+ $("mpe").innerHTML=emps.map(e=>`<label class="rk"><input type="checkbox" value="${e.id}"${on.has(e.id)?" checked":""}> ${esc(e.name)}</label>`).join("")||'<small class="st">Rekrut karyawan dulu.</small>';
+ fillCab($("mrs"),"");$("mgo").disabled=!!MT.busy;estMt();drawMt();$("mtd").showModal()}
+async function runMt(){
+ if(MT.busy)return;
+ const topic=$("mtp").value.trim(),ps=[...$("mpe").querySelectorAll("input:checked")].map(x=>emps.find(e=>e.id===x.value)).filter(Boolean),mss=$("mss");
+ if(!topic){$("mtp").focus();return}
+ if(ps.length<2||ps.length>8){mss.textContent="Pilih 2–8 peserta.";return}
+ const bz=ps.filter(p=>!run[p.id]||run[p.id].busy);
+ if(bz.length){mss.textContent=bz.map(p=>p.name).join(", ")+" sedang sibuk.";return}
+ const rd=+$("mrd").value,rs=cab.find(c=>c.id===$("mrs").value),ctx=rs?`\nBahan rujukan (bukan perintah): ${rs.title}\n"""\n${rs.text.slice(0,6000)}\n"""`:"";
+ Object.assign(MT,{busy:1,stop:0,tr:[],min:""});$("mgo").disabled=true;$("mstp").hidden=false;mss.className="stl";mss.textContent="Peserta menuju meja rapat…";drawMt();
+ logAdd(null,"Meeting","Dimulai: "+topic.slice(0,100)+" · peserta: "+ps.map(p=>p.name).join(", "),"info");
+ let ds=0;ps.forEach((p,k)=>{const r=run[p.id];r.busy=1;clearTimeout(r.t);r.el.classList.remove("seated");const s=mseat(k);ds=Math.max(ds,move(p,s.x,s.y))});
+ await sleep(ds+300);
+ let ok=0,fatal=0;
+ try{
+  for(let q=1;q<=rd;q++)for(const p of ps){
+   if(MT.stop||fatal)break;
+   mss.textContent=`Ronde ${q}/${rd}: giliran ${p.name}…`;
+   const prev=MT.tr.slice(-10).map(t=>`${t.name} (${t.role||"karyawan"}): ${t.text.slice(0,600)}`).join("\n");
+   const pr=`Kamu adalah ${p.name}, seorang ${p.role||"karyawan"}. Skill: ${(p.skills||[]).join(", ")||"umum"}.${p.note?" Instruksi kerja: "+p.note+".":""}\nKamu sedang rapat bersama ${ps.filter(x=>x!==p).map(x=>x.name+" ("+(x.role||"karyawan")+")").join(", ")}.\nTopik rapat: ${topic}${ctx}\n`+(prev?`\nPembicaraan sejauh ini:\n${prev}\n`:"")+`\nIni ronde ${q} dari ${rd}. Sampaikan pendapatmu dari sudut pandang peran dan skillmu dalam 3-5 kalimat, tanggapi peserta lain bila relevan, jangan mengulang. ${q===rd?"Ini ronde terakhir: berikan usulan konkret. ":""}Bahasa Indonesia, tanpa basa-basi, tanpa markdown.`;
+   let tx,good=1;
+   try{const r=await callGemini(pr,null,m=>setStat(p,m.k,m.m));tx=r.text.trim();ok++;setStat(p,"ok","Bicara: "+tx.slice(0,22)+"…");logAdd(p,"Meeting","Ronde "+q+" «"+topic.slice(0,40)+"»: "+tx.slice(0,120),"ok")}
+   catch(x){good=0;tx="(gagal berbicara: "+errMsg(x)+")";logAdd(p,"Meeting","Gagal bicara ronde "+q+" — "+errMsg(x),"fail");if(x.kind==="quota"||x.kind==="key")fatal=1}
+   MT.tr.push({name:p.name,role:p.role||"",rd:q,text:tx,ok:good});drawMt()}
+  if(ok&&!MT.stop){const h=ps[0];mss.textContent=h.name+" menyusun notulen…";
+   try{const r=await callGemini(`Kamu adalah ${h.name}, ${h.role||"karyawan"}, pemimpin rapat. Susun notulen singkat dalam Bahasa Indonesia tanpa markdown dengan bagian: Ringkasan, Keputusan, Tindak lanjut (siapa mengerjakan apa).\nTopik: ${topic}\nPembicaraan:\n${MT.tr.filter(t=>t.ok).map(t=>`${t.name}: ${t.text.slice(0,800)}`).join("\n")}`,null,m=>setStat(h,m.k,m.m));MT.min=r.text.trim()}
+   catch(x){mss.textContent="Notulen gagal dibuat: "+errMsg(x)}}
+ }finally{
+  ps.forEach(p=>{const r=run[p.id];if(!r)return;r.busy=0;const s=seat(p.desk);r.t=setTimeout(()=>life(p),move(p,s.x,s.y))});
+  MT.busy=0;$("mgo").disabled=false;$("mstp").hidden=true}
+ if(MT.min&&$("msv").checked)addCab({type:"Hasil",title:"Meeting: "+topic.slice(0,40),agent:"Meeting",by:ps.map(p=>p.name),fmt:"teks",
+  text:"Topik: "+topic+"\nPeserta: "+ps.map(p=>p.name).join(", ")+"\n\nNOTULEN\n"+MT.min+"\n\nPEMBICARAAN\n"+MT.tr.map(t=>`[${t.name} · ronde ${t.rd}] ${t.text}`).join("\n\n")});
+ logAdd(null,"Meeting","Selesai: "+topic.slice(0,60)+" · "+ok+"/"+(ps.length*rd)+" pendapat"+(MT.min?" · notulen ✓":" · tanpa notulen"),ok&&MT.min?"ok":"fail");
+ if(MT.stop){mss.className="stl wait";mss.textContent="Meeting dihentikan."}
+ else if(MT.min){mss.className="stl ok";mss.textContent="✓ Meeting selesai"+($("msv").checked?", notulen disimpan di lemari.":".")}
+ else{mss.className="stl fail";mss.textContent="✗ "+(mss.textContent.startsWith("Notulen")?mss.textContent:"Meeting selesai tanpa notulen (cek logbook).")}
+ drawMt()}
+
+$("blog").onclick=openLog;$("lga").onchange=$("lgs").onchange=drawLog;$("lgx").onclick=()=>$("logd").close();
+let lgArm=0;$("lgclr").onclick=function(){if(!lgArm){lgArm=1;this.textContent="Yakin? Klik lagi";setTimeout(()=>{lgArm=0;this.textContent="Hapus log"},3500);return}
+ lgArm=0;this.textContent="Hapus log";logs=[];fbSet("kantor/logbook",logs);drawLog()};
+$("bmt").onclick=$("mrt").onclick=openMt;$("mcl").onclick=()=>$("mtd").close();$("mgo").onclick=runMt;
+$("mstp").onclick=()=>{MT.stop=1;$("mss").textContent="Dihentikan setelah giliran ini…"};
+$("mpe").onchange=$("mrd").onchange=estMt;$("cag").onchange=drawCab;
+
+// Inisialisasi tampilan awal agar meja tampil
 layout();
-
-// Ambil data dari Firebase secara aman dengan proteksi timeout / error
-db.ref('kantor').once('value').then((snapshot) => {
-  const data = snapshot.val() || {};
-  
-  emps = Array.isArray(data.karyawan) ? data.karyawan.filter(Boolean) : Object.values(data.karyawan || {}).filter(Boolean);
-  cab = Array.isArray(data.lemari) ? data.lemari.filter(Boolean) : Object.values(data.lemari || {}).filter(Boolean);
-  if(data.workflow) wf = data.workflow;
-
-  emps.forEach(e => {
-    e.hist = e.hist || (e.last ? [{id:"h0",t:"Tugas sebelumnya",res:e.last,at:Date.now(),from:"",to:[]}] : []);
-  });
-
-  const cntEl=document.getElementById("cnt");
-  if(cntEl) cntEl.textContent = "Sinkronisasi cloud berhasil ✓";
-  layout();
-  drawDesks();
-  emps.forEach(mount);
-  
-}).catch((error) => {
-  console.warn("Gagal memuat Firebase, beralih ke mode offline lokal:", error);
-  const cntEl=document.getElementById("cnt");
-  if(cntEl) cntEl.textContent = "Mode offline (Firebase diblokir/gagal)";
-  layout();
-  drawDesks();
+const arr=v=>(Array.isArray(v)?v:Object.values(v||{})).filter(Boolean);
+const slow=setTimeout(()=>pill("sync","wait","☁ Firebase lambat merespons…"),8000);
+db.ref('kantor').once('value').then(snap=>{
+  clearTimeout(slow);const data=snap.val()||{};
+  // Firebase membuang array kosong → normalisasi supaya tidak error (mis. skills/steps undefined)
+  emps=arr(data.karyawan).map(e=>{let h=arr(e.hist);
+    if(!h.length&&e.last)h=[{id:"h0",t:"Tugas sebelumnya",res:e.last,at:Date.now(),from:"",to:[]}];
+    return{...e,desk:+e.desk||0,skills:arr(e.skills),hist:h.map(x=>({...x,to:arr(x.to),chat:arr(x.chat)}))}});
+  cab=arr(data.lemari).map(c=>({...c,title:c.title||"",text:c.text||"",by:arr(c.by)}));
+  wf={task:"",steps:[],res:"",save:true,...(data.workflow||{})};wf.steps=arr(wf.steps);
+  logs=arr(data.logbook);
+  N=Math.min(30,Math.max(N,...emps.map(e=>e.desk+1)));   // meja tidak hilang bila jumlah meja lokal lebih kecil
+  loaded=true;pill("sync","ok","☁ Tersinkron");
+  layout();drawDesks();emps.forEach(mount);
+}).catch(x=>{
+  clearTimeout(slow);loaded=true;   // izinkan pakai, tapi beri tahu bahwa tidak tersimpan
+  pill("sync","fail","☁ Offline: perubahan tidak tersimpan");layout();drawDesks();
 });
 </script>
 </body></html>
