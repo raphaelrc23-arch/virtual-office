@@ -113,7 +113,7 @@ h2{font:700 16px "Silkscreen",monospace;margin:0}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
 </head>
 <body><main>
-<header><h1>Kantor AI <span class="pill ok" style="font:12px sans-serif;vertical-align:middle">v3.1</span></h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="cnt" id="cnt">Memuat data…</span><span class="pill wait" id="sync" role="status">☁ Memuat…</span><span class="pill" id="api" role="status" aria-live="polite">Gemini: belum dipakai</span></div></header>
+<header><h1>Kantor AI <span class="pill ok" style="font:12px sans-serif;vertical-align:middle">v4</span></h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="cnt" id="cnt">Memuat data…</span><span class="pill wait" id="sync" role="status">☁ Memuat…</span><span class="pill" id="api" role="status" aria-live="polite">Gemini: belum dipakai</span></div></header>
 <div id="room">
   <div class="wall"></div>
   <div class="win" style="left:8%"></div><div class="win" style="left:30%"></div><div class="win" style="left:52%"></div><div class="win" style="left:74%"></div>
@@ -121,7 +121,7 @@ h2{font:700 16px "Silkscreen",monospace;margin:0}
   <span class="deco" style="left:3%;bottom:10.6cqw">Dispenser (workflow)</span><span class="deco" style="left:25.5%;bottom:13.75cqw">Lemari</span>
   <span class="deco" style="right:6%;bottom:9.06cqw">Sofa</span><span class="deco" style="left:60%;bottom:8.8cqw">Meeting</span>
 </div>
-<div class="row" style="justify-content:flex-start;align-items:center;margin:8px 0 0"><button class="btn" id="dadd" type="button">+ Tambah meja</button><button class="btn" id="ddel" type="button">− Kurangi meja</button><span class="cnt" id="nd"></span><span style="margin-left:auto"></span><button class="btn" id="gkb" type="button">Atur API key</button><select id="gm" aria-label="Model Gemini" style="font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);max-width:200px"></select><button class="btn" id="gmb" type="button">Cek model</button><button class="btn" id="blog" type="button">Logbook</button><button class="btn" id="bmt" type="button">Meeting</button></div>
+<div class="row" style="justify-content:flex-start;align-items:center;margin:8px 0 0"><button class="btn" id="dadd" type="button">+ Tambah meja</button><button class="btn" id="ddel" type="button">− Kurangi meja</button><span class="cnt" id="nd"></span><span style="margin-left:auto"></span><select id="gpv" aria-label="Penyedia AI" style="font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"><option value="groq">Groq (gratis)</option><option value="gemini">Gemini</option></select><button class="btn" id="gkb" type="button">Atur API key</button><select id="gm" aria-label="Model Gemini" style="font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);max-width:200px"></select><button class="btn" id="gmb" type="button">Cek model</button><button class="btn" id="blog" type="button">Logbook</button><button class="btn" id="bmt" type="button">Meeting</button></div>
 <p class="hint">Lampu kecil di kepala karyawan = status permintaan terakhir (✓ berhasil, ✗ gagal, ⏳ menunggu limit). Klik meja bundar untuk meeting, tombol Logbook untuk riwayat kerja. Klik meja kosong untuk menambah karyawan AI. Klik karyawan untuk mengubah skill, memberi tugas, atau menghapusnya. Klik dispenser untuk membuat workflow, klik lemari untuk melihat hasil kerja dan resource.</p>
 <div id="roster"></div>
 </main>
@@ -200,15 +200,18 @@ if (!firebase.apps.length) {
 }
 const db = firebase.database();
 
-let GEMINI_API_KEY=(()=>{try{return localStorage.getItem("kantor-ai-key")}catch(x){}})()||""; 
+const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(x){}return ""};
+const DEFL={groq:["llama-3.3-70b-versatile","openai/gpt-oss-120b","llama-3.1-8b-instant"],gemini:["gemini-2.5-flash","gemini-2.5-pro"]};
+let PROV=LS("kantor-ai-prov")||"groq";const SFX=()=>PROV==="groq"?"-groq":"",PN=()=>PROV==="groq"?"Groq":"Gemini";
+let GEMINI_API_KEY=LS("kantor-ai-key"+SFX()); 
 
 const $=id=>document.getElementById(id);
-let GEMINI_MODEL=(()=>{try{return localStorage.getItem("kantor-ai-model")}catch(x){}})()||"gemini-2.5-pro";const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let GEMINI_MODEL=LS("kantor-ai-model"+SFX())||DEFL[PROV][0];const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let loaded=false,logs=[],logT=0;
 const apiS={ok:0,fail:0};
 const clean=v=>JSON.parse(JSON.stringify(v===undefined?null:v));
 const pill=(id,k,m)=>{const p=$(id);if(p){p.className="pill "+k;p.textContent=m}};
-const apiNote=(k,m)=>{if(k==="ok")apiS.ok++;if(k==="fail")apiS.fail++;pill("api",k==="work"?"wait":k,"Gemini "+GEMINI_MODEL+": "+m+" (✓"+apiS.ok+" ✗"+apiS.fail+")")};
+const apiNote=(k,m)=>{if(k==="ok")apiS.ok++;if(k==="fail")apiS.fail++;pill("api",k==="work"?"wait":k,PN()+" "+GEMINI_MODEL+": "+m+" (✓"+apiS.ok+" ✗"+apiS.fail+")")};
 const fbSet=(p,v)=>{if(!loaded)return;pill("sync","wait","☁ Menyimpan…");try{db.ref(p).set(clean(v)).then(()=>pill("sync","ok","☁ Tersimpan"),x=>pill("sync","fail","☁ Gagal simpan: "+((x&&x.code)||"error")))}catch(x){pill("sync","fail","☁ Gagal simpan")}};
 
 class GErr extends Error{constructor(kind,msg,wait){super(msg);this.code="gem";this.kind=kind;this.wait=wait||0}}
@@ -219,14 +222,14 @@ const gPump=()=>{if(GQ.n>=2||!GQ.q.length||GQ.tm)return;GQ.tm=setTimeout(()=>{GQ
 const gPut=()=>{GQ.n--;gPump()};
 function gErr(st,d){const er=(d&&d.error)||{},m=er.message||"",j=JSON.stringify(er.details||"")+m;
  if(st===429){const rd=j.match(/retryDelay"?:\s*"(\d+)/),w=rd?(+rd[1]+1)*1000:0;
-  return /per ?day|daily/i.test(j)?new GErr("quota","Kuota harian Gemini habis (429). Tunggu besok atau ganti API key."):new GErr("limit","Kena limit Gemini (429): terlalu banyak permintaan.",w)}
- if(st>=500)return new GErr("busy","Server Gemini sedang sibuk ("+st+").");
- if(st===401||st===403||/api key/i.test(m))return new GErr("key","API key ditolak ("+st+"): "+(m.slice(0,140)||"tanpa keterangan")+" — key salah salin atau sudah dicabut. Buat key baru di aistudio.google.com/apikey, salin dengan tombol Copy, lalu klik «Atur API key».");
- return new GErr("other","Gemini error "+st+": "+m.slice(0,150))}
+  return /per ?day|daily/i.test(j)?new GErr("quota","Kuota harian habis (429). Tunggu besok, atau ganti penyedia/API key."):new GErr("limit","Kena limit (429): terlalu banyak permintaan.",w)}
+ if(st>=500)return new GErr("busy","Server AI sedang sibuk ("+st+").");
+ if(st===401||st===403||/api key/i.test(m))return new GErr("key","API key ditolak ("+st+"): "+(m.slice(0,140)||"tanpa keterangan")+" — key salah salin atau sudah dicabut. Buat key baru (Groq: console.groq.com/keys), salin dengan tombol Copy, lalu klik «Atur API key».");
+ return new GErr("other","Error "+st+": "+m.slice(0,150))}
 
 // onSt({k:work|wait|ok|fail, m:pesan, retry}) dipanggil tiap perubahan status
 async function callGemini(promptText,onText,onSt){
- const MAX=4,url=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+ const MAX=4,G=PROV==="gemini",url=G?`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`:"https://api.groq.com/openai/v1/chat/completions";
  const st=(k,m,x)=>{apiNote(k,m);if(onSt)onSt({k,m,...x})};
  if(!GEMINI_API_KEY){const m="API key belum diisi. Klik tombol «Atur API key».";st("fail",m);throw new GErr("key",m)}
  await gGet();
@@ -234,15 +237,15 @@ async function callGemini(promptText,onText,onSt){
   try{
    st("work",a>1?`Mencoba lagi (${a}/${MAX})…`:"Menghubungi Gemini…");
    let r,d=null;
-   try{r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":GEMINI_API_KEY},body:JSON.stringify({contents:[{parts:[{text:promptText}]}]})})}
-   catch(x){throw new GErr("net","Tidak bisa terhubung ke Gemini. Periksa internet.")}
+   try{r=await fetch(url,{method:"POST",headers:G?{"Content-Type":"application/json","x-goog-api-key":GEMINI_API_KEY}:{"Content-Type":"application/json","Authorization":"Bearer "+GEMINI_API_KEY},body:JSON.stringify(G?{contents:[{parts:[{text:promptText}]}]}:{model:GEMINI_MODEL,messages:[{role:"user",content:promptText}]})})}
+   catch(x){throw new GErr("net","Tidak bisa terhubung ke server AI. Periksa internet.")}
    try{d=await r.json()}catch(x){}
-   if(!r.ok)throw gErr(r.status,d);
-   const c=d&&d.candidates&&d.candidates[0],t=c&&c.content&&c.content.parts?c.content.parts.map(p=>p.text||"").join(""):"";
+   if(!r.ok){const e0=gErr(r.status,d),ra=+r.headers.get("retry-after");if(ra&&e0.kind==="limit")e0.wait=(ra+1)*1000;throw e0}
+   const c=G?(d&&d.candidates&&d.candidates[0]):(d&&d.choices&&d.choices[0]),t=G?(c&&c.content&&c.content.parts?c.content.parts.map(p=>p.text||"").join(""):""):((c&&c.message&&c.message.content)||"");
    if(t.trim()){st("ok","respons diterima ✓");if(onText)onText({text:t});return{text:t,tries:a}}
    const b=d&&d.promptFeedback&&d.promptFeedback.blockReason;
-   if(b)throw new GErr("block","Diblokir filter keamanan Gemini ("+b+").");
-   throw new GErr("empty","Gemini mengembalikan respons kosong"+(c&&c.finishReason?" ("+c.finishReason+")":"")+".")
+   if(b)throw new GErr("block","Diblokir filter keamanan ("+b+").");
+   throw new GErr("empty","AI mengembalikan respons kosong"+(c&&c.finishReason?" ("+c.finishReason+")":"")+".")
   }catch(x){
    if(!(x instanceof GErr))x=new GErr("other",x&&x.message||"Error tak dikenal");
    if(!(/^(limit|busy|net|empty)$/.test(x.kind)&&a<MAX&&x.wait<=45000)){st("fail",x.message);throw x}
@@ -687,16 +690,18 @@ async function runMt(){
  drawMt()}
 
 const gmFill=names=>{const l=[...new Set([GEMINI_MODEL,...names])];$("gm").innerHTML=l.map(n=>`<option${n===GEMINI_MODEL?" selected":""}>${esc(n)}</option>`).join("")};
-gmFill(["gemini-2.5-pro","gemini-2.5-flash"]);
-$("gm").onchange=()=>{GEMINI_MODEL=$("gm").value;try{localStorage.setItem("kantor-ai-model",GEMINI_MODEL)}catch(x){}pill("api","ok","Model: "+GEMINI_MODEL)};
-$("gkb").onclick=()=>{const v=prompt("Tempel API key Gemini (disimpan hanya di browser ini, tidak ikut ke GitHub):","");if(v===null)return;
- GEMINI_API_KEY=v.trim();try{localStorage.setItem("kantor-ai-key",GEMINI_API_KEY)}catch(x){}
+$("gpv").value=PROV;gmFill(DEFL[PROV]);
+$("gm").onchange=()=>{GEMINI_MODEL=$("gm").value;try{LS("kantor-ai-model"+SFX(),GEMINI_MODEL)}catch(x){}pill("api","ok","Model: "+GEMINI_MODEL)};
+$("gkb").onclick=()=>{const v=prompt("Tempel API key "+PN()+" (disimpan hanya di browser ini, tidak ikut ke GitHub):","");if(v===null)return;
+ GEMINI_API_KEY=v.trim();try{LS("kantor-ai-key"+SFX(),GEMINI_API_KEY)}catch(x){}
  pill("api",GEMINI_API_KEY?"ok":"wait",GEMINI_API_KEY?"Key tersimpan. Klik «Cek model» untuk menguji.":"Key dikosongkan")};
-if(!GEMINI_API_KEY)pill("api","wait","Gemini: key belum diisi — klik «Atur API key»");
+if(!GEMINI_API_KEY)pill("api","wait",PN()+": key belum diisi — klik «Atur API key»");
+$("gpv").onchange=()=>{PROV=$("gpv").value;LS("kantor-ai-prov",PROV);GEMINI_API_KEY=LS("kantor-ai-key"+SFX());GEMINI_MODEL=LS("kantor-ai-model"+SFX())||DEFL[PROV][0];gmFill(DEFL[PROV]);
+ pill("api",GEMINI_API_KEY?"ok":"wait",PN()+(GEMINI_API_KEY?": siap dipakai":": key belum diisi — klik «Atur API key»"))};
 $("gmb").onclick=async()=>{const b=$("gmb");if(!GEMINI_API_KEY){pill("api","fail","Isi API key dulu (tombol «Atur API key»)");return}b.disabled=true;b.textContent="Mengecek…";
- try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",{headers:{"x-goog-api-key":GEMINI_API_KEY}}),d=await r.json();
+ try{const G=PROV==="gemini",r=await fetch(G?"https://generativelanguage.googleapis.com/v1beta/models?pageSize=200":"https://api.groq.com/openai/v1/models",{headers:G?{"x-goog-api-key":GEMINI_API_KEY}:{Authorization:"Bearer "+GEMINI_API_KEY}}),d=await r.json();
   if(!r.ok)throw gErr(r.status,d);
-  const n=(d.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")&&/gemini/.test(m.name)).map(m=>m.name.replace("models/","")).sort((a,b)=>(/pro/.test(b)-/pro/.test(a))||a.localeCompare(b));
+  const n=G?(d.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")&&/gemini/.test(m.name)).map(m=>m.name.replace("models/","")).sort((a,b)=>(/pro/.test(b)-/pro/.test(a))||a.localeCompare(b)):(d.data||[]).map(m=>m.id).filter(i=>!/whisper|guard|tts|orpheus|playai|safeguard/i.test(i)).sort();
   gmFill(n);pill("api","ok",n.length+" model tersedia untuk key ini")}
  catch(x){pill("api","fail",errMsg(x))}
  b.disabled=false;b.textContent="Cek model"};
