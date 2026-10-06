@@ -113,7 +113,7 @@ h2{font:700 16px "Silkscreen",monospace;margin:0}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
 </head>
 <body><main>
-<header><h1>Kantor AI <span class="pill ok" style="font:12px sans-serif;vertical-align:middle">v3</span></h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="cnt" id="cnt">Memuat data…</span><span class="pill wait" id="sync" role="status">☁ Memuat…</span><span class="pill" id="api" role="status" aria-live="polite">Gemini: belum dipakai</span></div></header>
+<header><h1>Kantor AI <span class="pill ok" style="font:12px sans-serif;vertical-align:middle">v3.1</span></h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="cnt" id="cnt">Memuat data…</span><span class="pill wait" id="sync" role="status">☁ Memuat…</span><span class="pill" id="api" role="status" aria-live="polite">Gemini: belum dipakai</span></div></header>
 <div id="room">
   <div class="wall"></div>
   <div class="win" style="left:8%"></div><div class="win" style="left:30%"></div><div class="win" style="left:52%"></div><div class="win" style="left:74%"></div>
@@ -121,7 +121,7 @@ h2{font:700 16px "Silkscreen",monospace;margin:0}
   <span class="deco" style="left:3%;bottom:10.6cqw">Dispenser (workflow)</span><span class="deco" style="left:25.5%;bottom:13.75cqw">Lemari</span>
   <span class="deco" style="right:6%;bottom:9.06cqw">Sofa</span><span class="deco" style="left:60%;bottom:8.8cqw">Meeting</span>
 </div>
-<div class="row" style="justify-content:flex-start;align-items:center;margin:8px 0 0"><button class="btn" id="dadd" type="button">+ Tambah meja</button><button class="btn" id="ddel" type="button">− Kurangi meja</button><span class="cnt" id="nd"></span><span style="margin-left:auto"></span><select id="gm" aria-label="Model Gemini" style="font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);max-width:200px"></select><button class="btn" id="gmb" type="button">Cek model</button><button class="btn" id="blog" type="button">Logbook</button><button class="btn" id="bmt" type="button">Meeting</button></div>
+<div class="row" style="justify-content:flex-start;align-items:center;margin:8px 0 0"><button class="btn" id="dadd" type="button">+ Tambah meja</button><button class="btn" id="ddel" type="button">− Kurangi meja</button><span class="cnt" id="nd"></span><span style="margin-left:auto"></span><button class="btn" id="gkb" type="button">Atur API key</button><select id="gm" aria-label="Model Gemini" style="font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);max-width:200px"></select><button class="btn" id="gmb" type="button">Cek model</button><button class="btn" id="blog" type="button">Logbook</button><button class="btn" id="bmt" type="button">Meeting</button></div>
 <p class="hint">Lampu kecil di kepala karyawan = status permintaan terakhir (✓ berhasil, ✗ gagal, ⏳ menunggu limit). Klik meja bundar untuk meeting, tombol Logbook untuk riwayat kerja. Klik meja kosong untuk menambah karyawan AI. Klik karyawan untuk mengubah skill, memberi tugas, atau menghapusnya. Klik dispenser untuk membuat workflow, klik lemari untuk melihat hasil kerja dan resource.</p>
 <div id="roster"></div>
 </main>
@@ -200,7 +200,7 @@ if (!firebase.apps.length) {
 }
 const db = firebase.database();
 
-const GEMINI_API_KEY = "AQ.Ab8RN6JkStlrOx3pSL7FVINZ3c_vIvQASe_sKS-GHNE7QyIIBw"; 
+let GEMINI_API_KEY=(()=>{try{return localStorage.getItem("kantor-ai-key")}catch(x){}})()||""; 
 
 const $=id=>document.getElementById(id);
 let GEMINI_MODEL=(()=>{try{return localStorage.getItem("kantor-ai-model")}catch(x){}})()||"gemini-2.5-pro";const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -221,13 +221,14 @@ function gErr(st,d){const er=(d&&d.error)||{},m=er.message||"",j=JSON.stringify(
  if(st===429){const rd=j.match(/retryDelay"?:\s*"(\d+)/),w=rd?(+rd[1]+1)*1000:0;
   return /per ?day|daily/i.test(j)?new GErr("quota","Kuota harian Gemini habis (429). Tunggu besok atau ganti API key."):new GErr("limit","Kena limit Gemini (429): terlalu banyak permintaan.",w)}
  if(st>=500)return new GErr("busy","Server Gemini sedang sibuk ("+st+").");
- if(st===401||st===403||/api key/i.test(m))return new GErr("key","API key ditolak ("+st+"): "+(m.slice(0,140)||"tanpa keterangan")+" — periksa key di aistudio.google.com/apikey.");
+ if(st===401||st===403||/api key/i.test(m))return new GErr("key","API key ditolak ("+st+"): "+(m.slice(0,140)||"tanpa keterangan")+" — key salah salin atau sudah dicabut. Buat key baru di aistudio.google.com/apikey, salin dengan tombol Copy, lalu klik «Atur API key».");
  return new GErr("other","Gemini error "+st+": "+m.slice(0,150))}
 
 // onSt({k:work|wait|ok|fail, m:pesan, retry}) dipanggil tiap perubahan status
 async function callGemini(promptText,onText,onSt){
  const MAX=4,url=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
  const st=(k,m,x)=>{apiNote(k,m);if(onSt)onSt({k,m,...x})};
+ if(!GEMINI_API_KEY){const m="API key belum diisi. Klik tombol «Atur API key».";st("fail",m);throw new GErr("key",m)}
  await gGet();
  try{for(let a=1;;a++){
   try{
@@ -688,7 +689,11 @@ async function runMt(){
 const gmFill=names=>{const l=[...new Set([GEMINI_MODEL,...names])];$("gm").innerHTML=l.map(n=>`<option${n===GEMINI_MODEL?" selected":""}>${esc(n)}</option>`).join("")};
 gmFill(["gemini-2.5-pro","gemini-2.5-flash"]);
 $("gm").onchange=()=>{GEMINI_MODEL=$("gm").value;try{localStorage.setItem("kantor-ai-model",GEMINI_MODEL)}catch(x){}pill("api","ok","Model: "+GEMINI_MODEL)};
-$("gmb").onclick=async()=>{const b=$("gmb");b.disabled=true;b.textContent="Mengecek…";
+$("gkb").onclick=()=>{const v=prompt("Tempel API key Gemini (disimpan hanya di browser ini, tidak ikut ke GitHub):","");if(v===null)return;
+ GEMINI_API_KEY=v.trim();try{localStorage.setItem("kantor-ai-key",GEMINI_API_KEY)}catch(x){}
+ pill("api",GEMINI_API_KEY?"ok":"wait",GEMINI_API_KEY?"Key tersimpan. Klik «Cek model» untuk menguji.":"Key dikosongkan")};
+if(!GEMINI_API_KEY)pill("api","wait","Gemini: key belum diisi — klik «Atur API key»");
+$("gmb").onclick=async()=>{const b=$("gmb");if(!GEMINI_API_KEY){pill("api","fail","Isi API key dulu (tombol «Atur API key»)");return}b.disabled=true;b.textContent="Mengecek…";
  try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",{headers:{"x-goog-api-key":GEMINI_API_KEY}}),d=await r.json();
   if(!r.ok)throw gErr(r.status,d);
   const n=(d.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")&&/gemini/.test(m.name)).map(m=>m.name.replace("models/","")).sort((a,b)=>(/pro/.test(b)-/pro/.test(a))||a.localeCompare(b));
